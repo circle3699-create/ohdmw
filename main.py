@@ -3,54 +3,78 @@ import requests
 import json
 from datetime import datetime
 
-# 1. 환경 설정
+# 1. 깃허브 금고(Secrets)에서 정보 가져오기
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 API_KEY = os.environ.get('API_KEY')
 
-# 2. 에이전트 팀 협업 프롬프트
 today_date = datetime.now().strftime('%Y년 %m월 %d일')
-team_prompt = f"""
-너는 이제부터 1인 기업 대표님을 보좌하는 'AI 화장품 런칭 팀'이야. 
-아래 세 명의 전문가가 순차적으로 협업하여 오늘 아침 최종 보고서를 작성해.
 
----
-[단계 1: R&D 리서처의 기술 조사]
-전 세계 최신 화장품 특허와 신성분 소식을 분석해. 
-특히 기존 성분의 한계를 극복한 신기술(예: 흡수율 개선, 천연 대체 성분 등)을 3가지 선정해.
+def ask_gemini_pro(system_role, task_instruction, context_data=""):
+    """Gemini 1.5 Pro 모델을 호출하는 고성능 엔진"""
+    # 유료 티어의 성능을 십분 발휘하기 위해 gemini-1.5-pro 모델을 명시합니다.
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key={API_KEY}"
+    headers = {'Content-Type': 'application/json'}
+    
+    # 에이전트의 전문성을 극대화하는 프롬프트 구조
+    full_prompt = f"""
+    당신은 전 세계 최고의 전문가 그룹의 일원인 '{system_role}'입니다.
+    
+    [참조 데이터]
+    {context_data if context_data else '최신 글로벌 트렌드 데이터베이스'}
+    
+    [수행 과업]
+    {task_instruction}
+    
+    [작성 가이드]
+    - 상장사 대표에게 직접 보고하는 수준의 전문적이고 냉철한 톤을 유지하세요.
+    - 단순 나열이 아닌, 데이터 간의 상관관계와 비즈니스 기회를 통찰력 있게 분석하세요.
+    """
+    
+    data = {
+        "contents": [{"parts": [{"text": full_prompt}]}],
+        "generationConfig": {
+            "temperature": 0.7,  # 창의성과 논리성의 균형
+            "topP": 0.95,
+            "maxOutputTokens": 4096
+        }
+    }
+    
+    response = requests.post(url, headers=headers, data=json.dumps(data))
+    res_json = response.json()
+    
+    if 'candidates' in res_json:
+        return res_json['candidates'][0]['content']['parts'][0]['text']
+    else:
+        return f"에러 발생: {res_json}"
 
-[단계 2: BM 기획자의 제품 설계]
-리서처가 뽑은 성분 중 가장 시장성이 높은 하나를 골라 제품을 기획해.
-- 제품명(가제), 타겟 고객, 핵심 소구점(USP), 예상 원가 구조 분석을 포함해.
+# --- [에이전트 팀 프로젝트 가동] ---
 
-[단계 3: 전략 디렉터의 최종 검수 및 보고]
-상장사 대표의 시각에서 위 기획안의 리스크를 점검하고, 
-'수익성'과 '차별화' 관점에서 최종 수정 제안을 더해 텔레그램 보고용으로 요약해.
----
+print(f"[{today_date}] Gemini 1.5 Pro 팀 프로젝트를 시작합니다...")
 
-오늘 날짜: {today_date}
-모든 과정은 논리적이고 전문적이어야 하며, 대표님이 즉시 의사결정할 수 있는 수준으로 작성해.
-"""
+# Step 1: 글로벌 R&D 분석 (리서처)
+print("1단계: 기술 리서처가 글로벌 특허 및 성분 혁신사례를 정밀 분석 중...")
+research_task = "글로벌 화장품 시장에서 '초고효능(High-Performance)'을 구현하는 최신 성분 특허 2가지와 원료사 동향을 분석해줘."
+research_result = ask_gemini_pro("글로벌 뷰티 테크 R&D 분석가", research_task)
 
-# 3. AI 실행 (Gemini 2.5 Flash 혹은 1.5 사용)
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
-headers = {'Content-Type': 'application/json'}
-data = {"contents": [{"parts": [{"text": team_prompt}]}]}
+# Step 2: 타겟 맞춤 제품 기획 (상품 BM)
+print("2단계: 수석 BM이 피트니스/피부 장벽 특화 제품을 설계 중...")
+planning_task = "위 리서치 결과를 바탕으로, '운동 전후 피부 관리'에 특화된 고기능성 스킨케어 제품을 기획해줘. 타겟은 구매력이 높은 3040 오피니언 리더층이야."
+planning_result = ask_gemini_pro("K-뷰티 럭셔리 브랜드 수석 기획자", planning_task, research_result)
 
-print("AI 에이전트 팀이 회의를 시작합니다...")
-response = requests.post(url, headers=headers, data=json.dumps(data))
-result = response.json()
+# Step 3: 수익성 및 전략 검토 (디렉터)
+print("3단계: 전략 디렉터가 최종 보고서를 완성 중...")
+final_task = "기획안의 시장 진입 장벽(MOAT)과 마케팅 핵심 전략을 수립하고, 대표님이 즉시 승인할 수 있는 최종 의사결정 리포트로 요약해줘."
+final_report = ask_gemini_pro("상장사 엑시트 경험의 비즈니스 전략가", final_task, planning_result)
 
-# 4. 결과 정리 및 전송
-if 'candidates' in result:
-    final_report = result['candidates'][0]['content']['parts'][0]['text'].replace('*', '')
-    message = f"🚀 [AI 팀 협업 보고] {today_date}\n\n{final_report}"
-else:
-    message = f"🚨 팀 회의 중 오류 발생: {result}"
+# --- [텔레그램 최종 전송] ---
 
-def send_telegram(token, chat_id, text):
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    requests.post(url, json={"chat_id": chat_id, "text": text})
+final_message = f"🏆 [Gemini Pro 전략 리포트] {today_date}\n\n{final_report.replace('*', '')}"
 
-send_telegram(TELEGRAM_TOKEN, CHAT_ID, message)
-print("대표님께 보고서 전송을 마쳤습니다.")
+def send_telegram(text):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    # 메시지가 길 수 있으므로 분할 전송 처리는 생략하고 4096자 내외로 전송
+    requests.post(url, json={"chat_id": CHAT_ID, "text": text})
+
+send_telegram(final_message)
+print("전략 보고서 전송 완료!")
