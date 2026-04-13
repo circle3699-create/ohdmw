@@ -46,7 +46,7 @@ if 'candidates' in result:
 else:
     final_message = f"🚨 제미나이 에러 상세내용: {result}"
 
-# 5. 텔레그램 발송 및 🌟진짜 결과 확인🌟
+# 4. 텔레그램 발송 및 결과 확인 (진단기 포함)
 def send_telegram_message(token, chat_id, text):
     telegram_url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
@@ -55,9 +55,10 @@ def send_telegram_message(token, chat_id, text):
     tg_response = requests.post(telegram_url, json=payload)
     
     print("---------------------------------")
-    print(f"🕵️ 텔레그램 서버의 진짜 대답 (상태 코드): {tg_response.status_code}")
-    print(f"🕵️ 텔레그램 서버의 상세 메시지: {tg_response.text}")
+    print(f"🕵️ 텔레그램 상태 코드: {tg_response.status_code}")
+    print(f"🕵️ 텔레그램 상세 메시지: {tg_response.text}")
     print("---------------------------------")
 
 print("텔레그램으로 브리핑을 전송합니다...")
 send_telegram_message(TELEGRAM_TOKEN, CHAT_ID, final_message)
+print("전송 완료!")
