@@ -1,0 +1,37 @@
+name: Fetch News and Send to Telegram
+
+on:
+  schedule:
+    - cron: '0 23 * * *' # 매일 아침 8시에 실행 (KST)
+  workflow_dispatch: # 수동 실행 가능
+
+jobs:
+  fetch-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Fetch news from Gemini API
+        env:
+          GEMINI_API_KEY: ${{ secrets.API_KEY }} # GitHub Secrets에 추가한 Gemini API 키
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }} # GitHub Secrets에 설정한 텔레그램 API 토큰
+          YOUR_CHAT_ID: ${{ secrets.CHAT_ID }} # GitHub Secrets에 설정한 텔레그램 사용자 ID
+        run: |
+          # jq가 설치되어 있는지 확인하고 설치
+          sudo apt-get install -y jq
+
+          # Gemini API에서 뉴스 가져오기
+          response=$(curl -s -H "Authorization: Bearer $GEMINI_API_KEY" "https://api.geminisite.com/v1/news")
+
+          # API 응답 로그
+          echo "Response from Gemini API: $response"
+
+          # JSON에서 기사 제목 및 URL 추출
+          articles=$(echo $response | jq -r '.articles[] | "\(.title): \(.url)"')
+
+          # 각 뉴스를 텔레그램으로 전송
+          for article in $articles; do
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" -d "chat_id=$YOUR_CHAT_ID&text=$article"
+          done
+
+
+
