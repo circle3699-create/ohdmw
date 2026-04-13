@@ -3,13 +3,12 @@ import requests
 import json
 from datetime import datetime
 
-# 1. 환경 변수에서 정보 가져오기
+# 1. 금고에서 열쇠 꺼내기
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
 CHAT_ID = os.environ.get('CHAT_ID')
 API_KEY = os.environ.get('API_KEY')
 
 # 2. 뉴스 통합 브리핑 프롬프트
-# 제미나이에게 한국 주요 언론사의 뉴스를 검색하고 요약하도록 지시합니다.
 today_date = datetime.now().strftime('%Y년 %m월 %d일')
 prompt = f"""
 오늘은 {today_date}야. 
@@ -28,7 +27,7 @@ prompt = f"""
 - 가독성이 좋게 이모지를 적절히 사용해 줘.
 """
 
-# 3. 제미나이(Gemini 1.5 Flash) 호출
+# 3. 제미나이 호출
 print("실시간 뉴스를 통합 분석 중입니다...")
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 headers = {'Content-Type': 'application/json'}
@@ -44,5 +43,17 @@ result = response.json()
 # 4. 결과 정리 및 메시지 생성
 if 'candidates' in result:
     news_content = result['candidates'][0]['content']['parts'][0]['text']
-    news_content = news_content.replace('*', '') # 가독성을 위해 특수문자 제거
-    final_message = f"📢 [{today_date}]
+    news_content = news_content.replace('*', '') 
+    final_message = f"📢 [{today_date}] 대한민국 통합 뉴스 브리핑\n\n{news_content}"
+else:
+    final_message = f"🚨 뉴스 수집 중 오류가 발생했습니다.\n상세내용: {result}"
+
+# 5. 텔레그램 발송
+def send_telegram_message(token, chat_id, text):
+    telegram_url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text}
+    requests.post(telegram_url, json=payload)
+
+print("텔레그램으로 브리핑을 전송합니다...")
+send_telegram_message(TELEGRAM_TOKEN, CHAT_ID, final_message)
+print("전송 완료!")
