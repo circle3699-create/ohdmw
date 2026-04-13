@@ -22,16 +22,17 @@ jobs:
           # Gemini API에서 뉴스 가져오기
           response=$(curl -s -H "Authorization: Bearer $GEMINI_API_KEY" "https://api.geminisite.com/v1/news")
 
-          # API 응답 로그
-          echo "Response from Gemini API: $response"
+          # API 응답 오류 체크
+          if [[ $? -ne 0 || -z "$response" ]]; then
+            echo "Error: Failed to fetch data from the API or received empty response."
+            exit 1
+          fi
 
           # JSON에서 기사 제목 및 URL 추출
           articles=$(echo $response | jq -r '.articles[] | "\(.title): \(.url)"')
 
           # 각 뉴스를 텔레그램으로 전송
           for article in $articles; do
+            # 텔레그램 API에 메시지 전송
             curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" -d "chat_id=$YOUR_CHAT_ID&text=$article"
           done
-
-
-
