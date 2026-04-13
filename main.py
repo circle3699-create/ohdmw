@@ -1,43 +1,30 @@
-import requests
-import os
+name: Fetch News and Send to Telegram
 
-# 환경 변수에서 API 키와 텔레그램 토큰 가져오기
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
-YOUR_CHAT_ID = 'YOUR_CHAT_ID'  # 텔레그램 사용자 ID 또는 그룹 ID 입력
+on:
+  schedule:
+    - cron: '0 23 * * *' # 매일 아침 8시에 실행 (KST)
+  workflow_dispatch:
 
-def fetch_news():
-    # Gemini API와 통신하여 뉴스 가져오기
-    url = 'https://api.geminisite.com/v1/news'
-    headers = {
-        'Authorization': f'Bearer {GEMINI_API_KEY}',
-    }
-    
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        articles = response.json().get('articles', [])
-        return articles
-    else:
-        print("Error fetching news:", response.status_code)
-        return []
+jobs:
+  fetch-news:
+    runs-on: ubuntu-latest
 
-def send_to_telegram(message):
-    telegram_url = f'https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage'
-    payload = {
-        'chat_id': YOUR_CHAT_ID,
-        'text': message,
-    }
-    response = requests.post(telegram_url, data=payload)
-    return response
+    steps:
+      - name: Fetch news from Gemini API
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} # GitHub Secrets에 추가한 Gemini API 키
+          TELEGRAM_TOKEN: "8692520760:AAEVuAYwTMic5hQrx9-TZEWPPHEEoLY0_qg" # 텔레그램 API 토큰
+          YOUR_CHAT_ID: "77875553" # 텔레그램 사용자 ID
+        run: |
+          # Gemini API에서 뉴스 가져오기
+          response=$(curl -s -H "Authorization: Bearer $GEMINI_API_KEY" "https://api.geminisite.com/v1/news")
 
-def main():
-    articles = fetch_news()
-    if articles:
-        for article in articles:
-            title = article['title']
-            url = article['url']
-            message = f"{title}: {url}"
-            send_to_telegram(message)
+          # JSON에서 기사 제목 및 URL 추출
+          articles=$(echo $response | jq -r '.articles[] | "\(.title): \(.url)"')
 
-if __name__ == '__main__':
-    main()
+          # 각 뉴스를 텔레그램으로 전송
+          for article in $articles; do
+            # 텔레그램 API에 메시지 전송
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" -d "chat_id=$YOUR_CHAT_ID&text=$article"
+          done
+
