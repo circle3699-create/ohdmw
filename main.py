@@ -26,9 +26,9 @@ prompt = f"""
 - 가독성이 좋게 이모지를 적절히 사용해 줘.
 """
 
-# 3. 제미나이 호출
+# 3. 제미나이 호출 (🚨 2.5 최신 버전으로 수정 완료!)
 print("실시간 뉴스를 통합 분석 중입니다...")
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
 headers = {'Content-Type': 'application/json'}
 data = {
     "contents": [{
@@ -39,28 +39,19 @@ data = {
 response = requests.post(url, headers=headers, data=json.dumps(data))
 result = response.json()
 
-# 4. 결과 정리 (🚨 에러가 났던 부분을 안전하게 수정했습니다)
+# 4. 결과 정리
 if 'candidates' in result:
     news_content = result['candidates'][0]['content']['parts'][0]['text']
     news_content = news_content.replace('*', '') 
-    # 문장을 더하기(+) 기호로 안전하게 이어 붙입니다.
     final_message = "📢 [" + today_date + "] 대한민국 통합 뉴스 브리핑\n\n" + news_content
 else:
-    # 에러 메시지도 안전하게 이어 붙입니다.
     final_message = "🚨 제미나이 에러 상세내용: " + str(result)
 
-# 5. 텔레그램 발송 및 결과 확인 (진단기)
+# 5. 텔레그램 발송
 def send_telegram_message(token, chat_id, text):
     telegram_url = "https://api.telegram.org/bot" + str(token) + "/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
-    
-    # 텔레그램 서버로 쏘고 대답을 듣습니다.
-    tg_response = requests.post(telegram_url, json=payload)
-    
-    print("---------------------------------")
-    print(f"🕵️ 텔레그램 상태 코드: {tg_response.status_code}")
-    print(f"🕵️ 텔레그램 상세 메시지: {tg_response.text}")
-    print("---------------------------------")
+    requests.post(telegram_url, json=payload)
 
 print("텔레그램으로 브리핑을 전송합니다...")
 send_telegram_message(TELEGRAM_TOKEN, CHAT_ID, final_message)
