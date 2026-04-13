@@ -3,7 +3,7 @@ name: Fetch News and Send to Telegram
 on:
   schedule:
     - cron: '0 23 * * *' # 매일 아침 8시에 실행 (KST)
-  workflow_dispatch:
+  workflow_dispatch: # 수동 실행 가능
 
 jobs:
   fetch-news:
@@ -28,6 +28,4 @@ jobs:
 
           # 각 뉴스를 텔레그램으로 전송
           for article in $articles; do
-            # 텔레그램 API에 메시지 전송
-            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" -d "chat_id=$YOUR_CHAT_ID&text=$article"
-          done
+            # 텔레그램 API에 메시
