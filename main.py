@@ -16,6 +16,9 @@ jobs:
           TELEGRAM_TOKEN: "8692520760:AAEVuAYwTMic5hQrx9-TZEWPPHEEoLY0_qg" # 텔레그램 API 토큰
           YOUR_CHAT_ID: "77875553" # 텔레그램 사용자 ID
         run: |
+          # jq가 설치되어 있는지 확인하고 설치
+          sudo apt-get install -y jq
+
           # Gemini API에서 뉴스 가져오기
           response=$(curl -s -H "Authorization: Bearer $GEMINI_API_KEY" "https://api.geminisite.com/v1/news")
 
@@ -27,4 +30,3 @@ jobs:
             # 텔레그램 API에 메시지 전송
             curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_TOKEN/sendMessage" -d "chat_id=$YOUR_CHAT_ID&text=$article"
           done
-
