@@ -12,7 +12,7 @@ API_KEY = os.environ.get('API_KEY')
 today_date = datetime.now().strftime('%Y년 %m월 %d일')
 prompt = f"""
 오늘은 {today_date}야. 
-대한민국 주요 언론사(네이버 뉴스, 다음 뉴스, 주요 일간지 등)의 실시간 헤드라인과 주요 이슈를 확인해서 
+대한민국 주요 언론사의 실시간 헤드라인과 주요 이슈를 확인해서 
 아래 카테고리별로 가장 중요한 뉴스 3~5개를 통합해서 브리핑해 줘.
 
 [브리핑 포함 내용]
@@ -22,8 +22,7 @@ prompt = f"""
 4. 한 줄 요약: 오늘 아침 가장 핵심적인 한 문장
 
 [작성 규칙]
-- 말투는 간결하고 신뢰감 있는 뉴스 브리핑 톤으로 작성해 줘.
-- 각 뉴스에는 짧은 요약과 가능하면 관련 키워드를 포함해 줘.
+- 말투는 간결하고 신뢰감 있는 뉴스 브리핑 톤으로.
 - 가독성이 좋게 이모지를 적절히 사용해 줘.
 """
 
@@ -40,20 +39,25 @@ data = {
 response = requests.post(url, headers=headers, data=json.dumps(data))
 result = response.json()
 
-# 4. 결과 정리 및 메시지 생성
 if 'candidates' in result:
     news_content = result['candidates'][0]['content']['parts'][0]['text']
     news_content = news_content.replace('*', '') 
     final_message = f"📢 [{today_date}] 대한민국 통합 뉴스 브리핑\n\n{news_content}"
 else:
-    final_message = f"🚨 뉴스 수집 중 오류가 발생했습니다.\n상세내용: {result}"
+    final_message = f"🚨 제미나이 에러 상세내용: {result}"
 
-# 5. 텔레그램 발송
+# 5. 텔레그램 발송 및 🌟진짜 결과 확인🌟
 def send_telegram_message(token, chat_id, text):
     telegram_url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
-    requests.post(telegram_url, json=payload)
+    
+    # 텔레그램 서버로 쏘고 대답을 듣습니다.
+    tg_response = requests.post(telegram_url, json=payload)
+    
+    print("---------------------------------")
+    print(f"🕵️ 텔레그램 서버의 진짜 대답 (상태 코드): {tg_response.status_code}")
+    print(f"🕵️ 텔레그램 서버의 상세 메시지: {tg_response.text}")
+    print("---------------------------------")
 
 print("텔레그램으로 브리핑을 전송합니다...")
 send_telegram_message(TELEGRAM_TOKEN, CHAT_ID, final_message)
-print("전송 완료!")
